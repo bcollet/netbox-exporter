@@ -1,0 +1,3 @@
+pynetbox
+PyYAML
+jinja2

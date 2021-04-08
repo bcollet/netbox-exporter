@@ -1,0 +1,3 @@
+netbox:
+  url:    'https://netbox.local'
+  token:  ''

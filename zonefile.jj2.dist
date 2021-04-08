@@ -1,0 +1,21 @@
+$TTL 86400
+@ IN SOA ns1.example.com. hostmaster.example.com. (
+         {{ serial }} ; Serial
+         4H ; Refresh
+         1H ; Retry
+         1W ; Expire
+         1D ) ; Minimum TTL
+@ IN NS ns1.example.com.
+@ IN NS ns2.example.com.
+
+{% for record, rrs in records.items() -%}
+{% for rr in rrs -%}
+{% if not record.endswith('.') -%}
+{% set record = record + "." -%}
+{% endif -%}
+{% if rr.type in ['PTR'] and not rr.rr.endswith('.') -%}
+{% set update = rr.update({'rr':rr.rr + "."}) -%}
+{% endif -%}
+{{ record }} IN {{ rr.type }} {{ rr.rr }}
+{% endfor -%}
+{% endfor -%}
