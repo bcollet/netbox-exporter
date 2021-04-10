@@ -1,3 +1,13 @@
 netbox:
   url:    'https://netbox.local'
   token:  ''
+zones:
+  - type: 'reverse'
+    name: '192.0.2.0/24'
+    file: '/path/to/file/db.192.0.2'
+  - type: 'reverse'
+    name: '2001:db8::/32'
+    file: '/path/to/file/db'2001:db8'
+  - type: 'forward'
+    name: 'example.com'
+    file: '/path/to/file/example.com'

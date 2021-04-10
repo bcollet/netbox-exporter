@@ -83,7 +83,13 @@ def ptr(nb, args):
     env = Environment(loader=file_loader)
     template = env.get_template("zonefile.jj2")
     output = template.render(serial=serial,records=records)
-    print(output)
+
+    if not hasattr(args, 'output'):
+        print(output)
+    else:
+        f = open(args.output,'w')
+        f.write(output)
+        f.close()
 
 def dns(nb, args):
     devices_id = []
@@ -162,7 +168,23 @@ def dns(nb, args):
     env = Environment(loader=file_loader)
     template = env.get_template("zonefile.jj2")
     output = template.render(serial=serial,records=records)
-    print(output)
+
+    if not hasattr(args, 'output'):
+        print(output)
+    else:
+        f = open(args.output,'w')
+        f.write(output)
+        f.close()
+
+def autodns(nb, args):
+    if not 'zones' in cfg:
+        return
+
+    for zone in cfg['zones']:
+        if zone['type'] == 'reverse':
+            ptr(nb, argparse.Namespace(prefix=zone['name'],output=zone['file']))
+        elif zone['type'] == 'forward':
+            dns(nb, argparse.Namespace(domain=zone['name'],output=zone['file']))
 
 
 if __name__ == '__main__':
@@ -173,6 +195,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Netbox API exporter')
     subparsers = parser.add_subparsers(help='Action to perform',dest='action',required=True)
+
+    subparser = subparsers.add_parser('autodns', help='Generate all DNS zone files using configuration')
 
     subparser = subparsers.add_parser('ptr', help='Generate reverse DNS zone file for prefix')
     subparser.add_argument('prefix', type=str, help='Prefix')
