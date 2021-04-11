@@ -15,7 +15,7 @@ config = os.path.join(os.path.dirname(os.path.realpath(__file__)),'config.yml')
 with open(config, 'r') as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
-templates_dir = os.path.dirname(os.path.realpath(__file__))
+templates_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),'templates')
 
 def ptr(nb, args):
     device_primary = {}
@@ -81,7 +81,7 @@ def ptr(nb, args):
 
     file_loader = FileSystemLoader(templates_dir)
     env = Environment(loader=file_loader)
-    template = env.get_template("zonefile.jj2")
+    template = env.get_template(args.template)
     output = template.render(serial=serial,records=records)
 
     if not hasattr(args, 'output'):
@@ -166,7 +166,7 @@ def dns(nb, args):
 
     file_loader = FileSystemLoader(templates_dir)
     env = Environment(loader=file_loader)
-    template = env.get_template("zonefile.jj2")
+    template = env.get_template(args.template)
     output = template.render(serial=serial,records=records)
 
     if not hasattr(args, 'output'):
@@ -182,9 +182,9 @@ def autodns(nb, args):
 
     for zone in cfg['zones']:
         if zone['type'] == 'reverse':
-            ptr(nb, argparse.Namespace(prefix=zone['name'],output=zone['file']))
+            ptr(nb, argparse.Namespace(prefix=zone['name'],template=zone['template'],output=zone['file']))
         elif zone['type'] == 'forward':
-            dns(nb, argparse.Namespace(domain=zone['name'],output=zone['file']))
+            dns(nb, argparse.Namespace(domain=zone['name'],template=zone['template'],output=zone['file']))
 
 
 if __name__ == '__main__':
@@ -200,9 +200,11 @@ if __name__ == '__main__':
 
     subparser = subparsers.add_parser('ptr', help='Generate reverse DNS zone file for prefix')
     subparser.add_argument('prefix', type=str, help='Prefix')
+    subparser.add_argument('template', type=str, help='template')
 
     subparser = subparsers.add_parser('dns', help='Generate DNS zone file for domain')
     subparser.add_argument('domain', type=str, help='Domain')
+    subparser.add_argument('template', type=str, help='template')
 
     args = parser.parse_args()
     globals()[args.action](nb, args)
