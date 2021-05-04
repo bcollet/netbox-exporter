@@ -93,14 +93,37 @@ def ptr(nb, args):
 
 def dns(nb, args):
     devices_id = []
+    clusters_id = []
     vm_id = []
     primary_ip = {}
+    vc_devices = {}
     records = {}
     serial = 0
 
     devices = nb.dcim.devices.filter(name__iew=args.domain)
+    clusters = nb.dcim.virtual_chassis.filter(domain=args.domain)
+    cluster_devices = nb.dcim.devices.filter(virtual_chassis_member=True)
     vms = nb.virtualization.virtual_machines.filter(name__iew=args.domain)
     addresses = nb.ipam.ip_addresses.all()
+
+    for cluster in clusters:
+        clusters_id.append(cluster.id)
+
+    for cluster_device in cluster_devices:
+        if cluster_device.virtual_chassis.id in clusters_id:
+            last_updated = int(datetime.timestamp(datetime.strptime(cluster_device.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+            if last_updated > serial: serial = last_updated
+
+            devices_id.append(cluster_device.id)
+
+            vc_devices[cluster_device.id] = cluster_device.virtual_chassis.name
+
+            if cluster_device.primary_ip4:
+                primary_ip[cluster_device.primary_ip4.id] = cluster_device.virtual_chassis.name
+
+            if cluster_device.primary_ip6:
+                primary_ip[cluster_device.primary_ip6.id] = cluster_device.virtual_chassis.name
+
 
     for device in devices:
         last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
@@ -150,7 +173,11 @@ def dns(nb, args):
 
         elif address.assigned_object_type == 'dcim.interface' and address.assigned_object.device.id in devices_id:
             iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name.lower())
-            fname = ".".join((iname,address.assigned_object.device.name))
+
+            if address.assigned_object.device.id in vc_devices:
+                fname = ".".join((iname,vc_devices[address.assigned_object.device.id]))
+            else:
+                fname = ".".join((iname,address.assigned_object.device.name))
 
             if fname not in records:
                 records[fname] = []
