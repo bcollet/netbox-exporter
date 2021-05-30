@@ -66,11 +66,12 @@ def ptr(nb, args):
             if address.assigned_object.device.id in device_cluster:
                 address.assigned_object.device.name = device_cluster[address.assigned_object.device.id]
 
-            if address.assigned_object.device.id in device_primary and address.id == device_primary[address.assigned_object.device.id]:
-                records[ptr] = [{"type":"PTR","rr":address.assigned_object.device.name}]
-            else:
-                iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name)
-                records[ptr] = [{"type":"PTR","rr":".".join((iname,address.assigned_object.device.name))}]
+            if address.assigned_object.device.name is not None:
+                if address.assigned_object.device.id in device_primary and address.id == device_primary[address.assigned_object.device.id]:
+                    records[ptr] = [{"type":"PTR","rr":address.assigned_object.device.name}]
+                else:
+                    iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name)
+                    records[ptr] = [{"type":"PTR","rr":".".join((iname,address.assigned_object.device.name))}]
 
         elif address.assigned_object_type == 'virtualization.vminterface':
             if address.assigned_object.virtual_machine.id in vm_primary and address.id == vm_primary[address.assigned_object.virtual_machine.id]:
