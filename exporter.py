@@ -22,15 +22,20 @@ def ptr(nb, args):
     device_cluster = {}
     vm_primary = {}
     records = {}
+    extra_records = []
     serial = 0
     af = ipaddress.ip_network(args.prefix).version
 
+    extras = nb.extras.config_contexts.get(name=args.prefix)
     devices = nb.dcim.devices.all()
     vms = nb.virtualization.virtual_machines.filter(has_primary_ip=True)
     addresses = nb.ipam.ip_addresses.filter(parent=args.prefix)
 
+    if extras is not None:
+        extra_records = extras.data['records']
+
     for device in devices:
-        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         if device.virtual_chassis:
@@ -43,7 +48,7 @@ def ptr(nb, args):
             device_primary[device.id] = device.primary_ip6.id
 
     for vm in vms:
-        last_updated = int(datetime.timestamp(datetime.strptime(vm.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(vm.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         if af == 4 and vm.primary_ip4:
@@ -53,7 +58,7 @@ def ptr(nb, args):
             vm_primary[vm.id] = vm.primary_ip6.id
 
     for address in addresses:
-        last_updated = int(datetime.timestamp(datetime.strptime(address.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(address.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         ip = ipaddress.ip_interface(address.address).ip
@@ -70,20 +75,20 @@ def ptr(nb, args):
                 if address.assigned_object.device.id in device_primary and address.id == device_primary[address.assigned_object.device.id]:
                     records[ptr] = [{"type":"PTR","rr":address.assigned_object.device.name}]
                 else:
-                    iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name)
+                    iname = re.sub(r'[^a-zA-Z0-9]', '-',address.assigned_object.name).lower()
                     records[ptr] = [{"type":"PTR","rr":".".join((iname,address.assigned_object.device.name))}]
 
         elif address.assigned_object_type == 'virtualization.vminterface':
             if address.assigned_object.virtual_machine.id in vm_primary and address.id == vm_primary[address.assigned_object.virtual_machine.id]:
                 records[ptr] =  [{"type":"PTR","rr":address.assigned_object.virtual_machine.name}]
             else:
-                iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name)
+                iname = re.sub(r'[^a-zA-Z0-9]', '-',address.assigned_object.name).lower()
                 records[ptr] = [{"type":"PTR","rr":".".join((iname,address.assigned_object.virtual_machine.name))}]
 
     file_loader = FileSystemLoader(templates_dir)
     env = Environment(loader=file_loader)
     template = env.get_template(args.template)
-    output = template.render(serial=serial,records=records)
+    output = template.render(serial=serial,records=records, extra_records=extra_records)
 
     if not hasattr(args, 'output'):
         print(output)
@@ -101,18 +106,22 @@ def dns(nb, args):
     records = {}
     serial = 0
 
+    extras = nb.extras.config_contexts.get(name=args.domain)
     devices = nb.dcim.devices.filter(name__iew=args.domain)
     clusters = nb.dcim.virtual_chassis.filter(domain=args.domain)
     cluster_devices = nb.dcim.devices.filter(virtual_chassis_member=True)
     vms = nb.virtualization.virtual_machines.filter(name__iew=args.domain)
     addresses = nb.ipam.ip_addresses.all()
 
+    if extras is not None:
+        extra_records = extras.data['records']
+
     for cluster in clusters:
         clusters_id.append(cluster.id)
 
     for cluster_device in cluster_devices:
         if cluster_device.virtual_chassis.id in clusters_id:
-            last_updated = int(datetime.timestamp(datetime.strptime(cluster_device.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+            last_updated = int(datetime.timestamp(datetime.strptime(cluster_device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
             if last_updated > serial: serial = last_updated
 
             devices_id.append(cluster_device.id)
@@ -127,7 +136,7 @@ def dns(nb, args):
 
 
     for device in devices:
-        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         devices_id.append(device.id)
@@ -139,7 +148,7 @@ def dns(nb, args):
             primary_ip[device.primary_ip6.id] = device.name
 
     for vm in vms:
-        last_updated = int(datetime.timestamp(datetime.strptime(vm.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(vm.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         vm_id.append(vm.id)
@@ -151,7 +160,7 @@ def dns(nb, args):
             primary_ip[vm.primary_ip6.id] = vm.name
 
     for address in addresses:
-        last_updated = int(datetime.timestamp(datetime.strptime(address.last_updated, '%Y-%m-%dT%H:%M:%S.%fZ')))
+        last_updated = int(datetime.timestamp(datetime.strptime(address.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
         if last_updated > serial: serial = last_updated
 
         ip = ipaddress.ip_interface(address.address).ip
@@ -173,7 +182,7 @@ def dns(nb, args):
             records[primary_ip[address.id]].append({"type":type,"rr":ip})
 
         elif address.assigned_object_type == 'dcim.interface' and address.assigned_object.device.id in devices_id:
-            iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name.lower())
+            iname = re.sub(r'[^a-zA-Z0-9]', '-',address.assigned_object.name).lower()
 
             if address.assigned_object.device.id in vc_devices:
                 fname = ".".join((iname,vc_devices[address.assigned_object.device.id]))
@@ -185,7 +194,7 @@ def dns(nb, args):
             records[fname].append({"type":type,"rr":ip})
 
         elif address.assigned_object_type == 'virtualization.vminterface' and address.assigned_object.virtual_machine.id in vm_id:
-            iname = re.sub(r'[^a-z0-9]', '-',address.assigned_object.name.lower())
+            iname = re.sub(r'[^a-zA-Z0-9]', '-',address.assigned_object.name).lower()
             fname = ".".join((iname,address.assigned_object.virtual_machine.name))
 
             if fname not in records:
@@ -195,7 +204,7 @@ def dns(nb, args):
     file_loader = FileSystemLoader(templates_dir)
     env = Environment(loader=file_loader)
     template = env.get_template(args.template)
-    output = template.render(serial=serial,records=records)
+    output = template.render(serial=serial,records=records,extra_records=extra_records)
 
     if not hasattr(args, 'output'):
         print(output)
