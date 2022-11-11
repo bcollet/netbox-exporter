@@ -104,6 +104,7 @@ def dns(nb, args):
     primary_ip = {}
     vc_devices = {}
     records = {}
+    extra_records = []
     serial = 0
 
     extras = nb.extras.config_contexts.get(name=args.domain)
