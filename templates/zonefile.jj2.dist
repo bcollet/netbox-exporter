@@ -8,6 +8,10 @@ $TTL 86400
 @ IN NS ns1.example.com.
 @ IN NS ns2.example.com.
 
+{% for extra_record in extra_records -%}
+{{ extra_record.rr }} IN {{ extra_record.type }} {{ extra_record.data }}
+{% endfor -%}
+
 {% for record, rrs in records.items() -%}
 {% for rr in rrs -%}
 {% if not record.endswith('.') -%}
