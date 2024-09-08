@@ -120,6 +120,18 @@ def dns(nb, args):
     for cluster in clusters:
         clusters_id.append(cluster.id)
 
+    for device in devices:
+        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
+        if last_updated > serial: serial = last_updated
+
+        devices_id.append(device.id)
+
+        if device.primary_ip4:
+            primary_ip[device.primary_ip4.id] = device.name
+
+        if device.primary_ip6:
+            primary_ip[device.primary_ip6.id] = device.name
+
     for cluster_device in cluster_devices:
         if cluster_device.virtual_chassis.id in clusters_id:
             last_updated = int(datetime.timestamp(datetime.strptime(cluster_device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
@@ -134,19 +146,6 @@ def dns(nb, args):
 
             if cluster_device.primary_ip6:
                 primary_ip[cluster_device.primary_ip6.id] = cluster_device.virtual_chassis.name
-
-
-    for device in devices:
-        last_updated = int(datetime.timestamp(datetime.strptime(device.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
-        if last_updated > serial: serial = last_updated
-
-        devices_id.append(device.id)
-
-        if device.primary_ip4:
-            primary_ip[device.primary_ip4.id] = device.name
-
-        if device.primary_ip6:
-            primary_ip[device.primary_ip6.id] = device.name
 
     for vm in vms:
         last_updated = int(datetime.timestamp(datetime.strptime(vm.last_updated, '%Y-%m-%dT%H:%M:%S.%f%z')))
